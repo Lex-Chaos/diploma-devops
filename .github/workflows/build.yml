@@ -2,7 +2,11 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ main ] # Срабатывает при коммите в ветку main
+    branches: [ main ]
+    paths:
+    - 'docker/nginx.conf'
+    - 'docker/nginx-app.dockerfile'
+    - 'page/**'
 
 jobs:
   build-and-push:
@@ -10,6 +14,47 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Нужно для получения истории коммитов
+
+    - name: Determine changed files
+      id: changed-files
+      run: |
+        # Получаем список измененных файлов
+        CHANGED_FILES=$(git diff --name-only HEAD^ HEAD)
+        echo "Changed files: $CHANGED_FILES"
+
+        # Определяем, какие из нужных нам файлов изменились
+        CHANGED_NGINX_CONF=false
+        CHANGED_DOCKERFILE=false
+        CHANGED_PAGE=false
+
+        if [[ "$CHANGED_FILES" == *"docker/nginx.conf"* ]]; then
+          CHANGED_NGINX_CONF=true
+        fi
+
+        if [[ "$CHANGED_FILES" == *"docker/nginx-app.dockerfile"* ]]; then
+          CHANGED_DOCKERFILE=true
+        fi
+
+        if echo "$CHANGED_FILES" | grep -q "page/"; then
+          CHANGED_PAGE=true
+        fi
+
+        # Формируем тег на основе изменений
+        TAG_SUFFIX=""
+        if [[ "$CHANGED_NGINX_CONF" == "true" ]]; then
+          TAG_SUFFIX="changed-nginx.conf"
+        elif [[ "$CHANGED_DOCKERFILE" == "true" ]]; then
+          TAG_SUFFIX="changed-dockerfile"
+        elif [[ "$CHANGED_PAGE" == "true" ]]; then
+          TAG_SUFFIX="changed-page"
+        else
+          # Если по каким-то причинам попали сюда, хотя триггер был по paths
+          TAG_SUFFIX="other-changes"
+        fi
+
+        echo "TAG_SUFFIX=$TAG_SUFFIX" >> $GITHUB_OUTPUT
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -26,4 +71,5 @@ jobs:
         context: ./docker
         file: ./docker/nginx-app.dockerfile
         push: true
-        tags: ${{ vars.REGISTRY }}:latest-${{ github.sha }} # Образ с тегом вида latest-<commit_sha>
+        tags: |
+          ${{ vars.REGISTRY }}:${{ steps.changed-files.outputs.TAG_SUFFIX }}
