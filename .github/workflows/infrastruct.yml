@@ -26,6 +26,11 @@ jobs:
         working-directory: terraform/infrastruct
 
     steps:
+    - name: Create SSH key file
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PUBLIC_KEY }}" > ~/.ssh/id_ecdsa.pub
+
     - name: Checkout repository
       uses: actions/checkout@v4
 

@@ -40,7 +40,7 @@ module "masters" {
   disk-size     = 10
   sec-group-id  = [yandex_vpc_security_group.diploma-kubernetes-sg.id]
   user-data     = "./templates/cloud-init.yml"
-  ssh-key       = "~/.ssh/id_ecdsa.pub"
+  ssh-key       = "/home/runner/.ssh/id_ecdsa.pub"      #"~/.ssh/id_ecdsa.pub"
 }
 
 # # Модуль для создания воркер-нод
@@ -58,7 +58,7 @@ module "workers" {
   disk-size     = 10
   sec-group-id  = [yandex_vpc_security_group.diploma-kubernetes-sg.id]
   user-data     = "./templates/cloud-init.yml"
-  ssh-key       = "~/.ssh/id_ecdsa.pub"
+  ssh-key       = "/home/runner/.ssh/id_ecdsa.pub" #"~/.ssh/id_ecdsa.pub"
 }
 
 # Генерация динамического inventory
