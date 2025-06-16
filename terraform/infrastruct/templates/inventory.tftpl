@@ -1,0 +1,12 @@
+[masters]
+%{ for node in masters ~}
+${node.name} ansible_host=${node.ip} ansible_user=lex
+%{ endfor ~}
+
+[workers]
+%{ for node in workers ~}
+${node.name} ansible_host=${node.ip} ansible_user=lex
+%{ endfor ~}
+
+[all:vars]
+load_balancer_ip=${load_balancer_ip}

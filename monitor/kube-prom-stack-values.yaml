@@ -1,0 +1,11 @@
+grafana:
+  service:
+    type: NodePort
+    port: 80 # Внешний порт сервиса
+    targetPort: 3000 # Внутренний порт Grafana
+    nodePort: 30080 # Фиксированный порт для доступа к нодам
+    protocol: TCP
+  adminPassword: "admin"
+  grafana.ini:
+    server:
+      protocol: http # Использовать HTTP вместо HTTPS

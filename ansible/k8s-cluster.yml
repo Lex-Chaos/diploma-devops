@@ -1,0 +1,246 @@
+---
+- name: Setup Kubernetes Cluster
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    kube_version: "1.30.0"
+    kube_major_version: "{{ kube_version.split('.')[0] }}.{{ kube_version.split('.')[1] }}"
+    pod_network_cidr: "192.168.0.0/16" # Для Calico
+    # service_network_cidr: "10.96.0.0/12"
+    cri_socket: "unix:///run/containerd/containerd.sock"
+    # kubernetes_api_fqdn: "k8s.example.com"  # Опционально
+    # Для Yandex Cloud metadata service
+    # yc_metadata_url: "http://169.254.169.254/computeMetadata/v1/"
+
+  tasks:
+
+  - name: Comment out swap in fstab
+    ansible.builtin.replace:
+      path: /etc/fstab
+      regexp: '^([^#].*\sswap\s.*)'
+      replace: '#\1'
+    notify: Turn off swap
+
+  - name: Set overlay and netfilter
+    block:
+    - name: Ensure kernel modules are loaded
+      community.general.modprobe:
+        name: "{{ item }}"
+        state: present
+      loop:
+      - overlay
+      - br_netfilter
+
+    - name: Make modules persistent
+      ansible.builtin.copy:
+        dest: /etc/modules-load.d/k8s.conf
+        content: |
+          overlay
+          br_netfilter
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Set sysctl parameters for overlay and bridge networking
+      ansible.posix.sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        state: present
+        reload: true
+      loop:
+      - { key: "net.bridge.bridge-nf-call-iptables", value: "1" }
+      - { key: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
+      - { key: "net.ipv4.ip_forward", value: "1" }
+
+  - name: Add repositories
+    block:
+    - name: Remove existing repository file if exists
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+      - /etc/apt/sources.list.d/docker-ce.list
+      - /etc/apt/sources.list.d/kubernetes.list
+
+    - name: Add Docker GPG key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+        filename: docker-ce
+
+    - name: Add Kube GPG key
+      ansible.builtin.apt_key:
+        url: https://pkgs.k8s.io/core:/stable:/v{{ kube_major_version }}/deb/Release.key
+        state: present
+
+    - name: Add Kube repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64] https://pkgs.k8s.io/core:/stable:/v{{ kube_major_version }}/deb/ /"
+        state: present
+        filename: kubernetes
+
+    - name: Update repo
+      ansible.builtin.apt:
+        update_cache: true
+
+  - name: Install and configure containerd
+    block:
+    - name: Install containerd
+      ansible.builtin.apt:
+        name: containerd.io
+        state: present
+        update_cache: true
+
+    - name: Ensure containerd is running
+      ansible.builtin.systemd:
+        name: containerd
+        state: started
+        enabled: true
+
+    - name: Ensure containerd directories exist
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+      - /etc/containerd
+      - /var/lib/containerd
+      - /run/containerd
+
+    - name: Configure containerd for Kubernetes
+      ansible.builtin.template:
+        src: containerd-config-v2.toml.j2
+        dest: /etc/containerd/config.toml
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart containerd
+
+    - name: Force handler run
+      ansible.builtin.meta: flush_handlers
+
+  - name: Install kube
+    block:
+    - name: Install kubectl, kubelet, kubeadm
+      ansible.builtin.apt:
+        name:
+        - kubectl
+        - kubelet
+        - kubeadm
+        state: present
+        update_cache: true
+
+    - name: Hold kube at current version
+      ansible.builtin.command: apt-mark hold kubelet kubeadm kubectl
+      changed_when: false
+
+  - name: Configure masters
+    block:
+    - name: Init kubeadm
+      ansible.builtin.command: kubeadm init \ --control-plane-endpoint {{ hostvars['localhost']['load_balancer_ip'] }}:6443 \ --pod-network-cidr={{ pod_network_cidr }} \ --upload-certs \ --cri-socket={{ cri_socket }}
+      when: inventory_hostname == groups['masters'][0]
+
+    - name: Get join command
+      ansible.builtin.command: kubeadm token create --print-join-command
+      register: join_command
+      when: inventory_hostname == groups['masters'][0]
+
+    - name: Display join command
+      ansible.builtin.debug:
+        var: join_command
+      when: inventory_hostname == groups['masters'][0]
+
+    - name: Get certificate key explicitly
+      ansible.builtin.shell: kubeadm init phase upload-certs --upload-certs 2>/dev/null | tail -n 1
+      register: certificate_key
+      when: inventory_hostname == groups['masters'][0]
+      changed_when: false
+
+    - name: Display certificate_key fact
+      ansible.builtin.debug:
+        var: certificate_key
+      when: inventory_hostname == groups['masters'][0]
+
+    - name: Copy kube config to host
+      ansible.builtin.fetch:
+        src: /etc/kubernetes/admin.conf
+        dest: "~/.kube/config"
+        flat: true
+      when: inventory_hostname == groups['masters'][0]
+
+    - name: Ensure /root/.kube directory exists (root)
+      ansible.builtin.file:
+        path: /root/.kube
+        state: directory
+        owner: root
+        group: root
+        mode: '0700'
+      when: "'masters' in group_names"
+
+    - name: Copy admin.conf to master nodes (root)
+      ansible.builtin.copy:
+        src: ~/.kube/config # Путь на Ansible-хосте
+        dest: /root/.kube/config
+        owner: root
+        group: root
+        mode: '0644'
+      when: "'masters' in group_names"
+
+    - name: Ensure .kube directory exists for user
+      ansible.builtin.file:
+        path: "/home/{{ ansible_user }}/.kube"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0700'
+      when: "'masters' in group_names"
+
+    - name: Copy admin.conf to master nodes (user)
+      ansible.builtin.copy:
+        src: ~/.kube/config
+        dest: "/home/{{ ansible_user }}/.kube/config"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0600'
+      when: "'masters' in group_names"
+
+    - name: Install Calico
+      ansible.builtin.command: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+      when: inventory_hostname == groups['masters'][0]
+
+    - name: Wait for all pods to be fully ready
+      ansible.builtin.command: kubectl wait --for=condition=Ready pods --all -n kube-system --timeout=300s
+      when: inventory_hostname == groups['masters'][0]
+
+  - name: Join to cluster
+    block:
+    - name: Join masters
+      ansible.builtin.command: "{{ hostvars[groups['masters'][0]]['join_command'].stdout }} --control-plane --certificate-key {{ hostvars[groups['masters'][0]]['certificate_key'].stdout }}"
+      when:
+      - "'masters' in group_names"
+      - inventory_hostname != groups['masters'][0]
+
+    - name: Join workers
+      ansible.builtin.command: "{{ hostvars[groups['masters'][0]]['join_command'].stdout }}"
+      when: "'workers' in group_names"
+
+  - name: Apply worker labels
+    ansible.builtin.command: "kubectl label node {{ item }} node-role.kubernetes.io/worker="
+    loop: "{{ groups['workers'] }}"
+    when: inventory_hostname == groups['masters'][0]
+
+  handlers:
+  - name: Turn off swap
+    ansible.builtin.command: swapoff -a
+    changed_when: false
+
+  - name: Restart containerd
+    ansible.builtin.service:
+      name: containerd
+      state: restarted
