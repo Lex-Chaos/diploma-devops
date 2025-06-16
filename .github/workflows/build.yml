@@ -23,7 +23,7 @@ jobs:
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
-        context: .
-        file: ./docker/nginx-app.dockerfile
+        context: ./docker
+        file: nginx-app.dockerfile
         push: true
         tags: ${{ vars.REGISTRY }}:latest-${{ github.sha }} # Образ с тегом вида latest-<commit_sha>
