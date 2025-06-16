@@ -6,7 +6,7 @@ on:
     paths:
     - 'docker/nginx.conf'
     - 'docker/nginx-app.dockerfile'
-    - 'page/**'
+    - 'docker/page/**'
 
 jobs:
   build-and-push:
