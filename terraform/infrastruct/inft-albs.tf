@@ -81,7 +81,7 @@ resource "yandex_alb_target_group" "grafana_targets" {
   }
 }
 
-# Адрес grafana
+# Адрес grafana вот такой
 output "grafana_alb_ip" {
   value = "grafana-address - http:\\${yandex_alb_load_balancer.grafana_alb.listener[0].endpoint[0].address[0].external_ipv4_address[0].address}"
 }
