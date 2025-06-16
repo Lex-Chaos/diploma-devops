@@ -169,6 +169,7 @@ resource "yandex_alb_target_group" "app_targets" {
   }
 }
 
+# Адрес приложения
 output "app_alb_ip" {
   value = "app-address - http:\\${yandex_alb_load_balancer.app_alb.listener[0].endpoint[0].address[0].external_ipv4_address[0].address}"
 }
