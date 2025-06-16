@@ -1,0 +1,43 @@
+name: Terraform Apply
+
+on:
+  push:
+    branches:
+    - main
+    paths:
+    - 'terraform/infrastruct/*.tf'
+    - 'terraform/infrastruct/*.tfvars'
+    - 'terraform/infrastruct/templates/**'
+    - 'terraform/infrastruct/modules/**'
+
+env:
+  TF_VERSION: "1.11.4"
+  YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+  YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+  YC_TOKEN: ${{ secrets.YC_TOKEN }}
+
+jobs:
+  terraform:
+    name: Terraform
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: ${{ env.TF_VERSION }}
+
+    - name: Terraform Init
+      run: terraform init
+
+    - name: Terraform Validate
+      run: terraform validate
+
+    - name: Terraform Plan
+      run: terraform plan -input=false
+
+    - name: Terraform Apply
+      run: terraform apply -auto-approve -input=false

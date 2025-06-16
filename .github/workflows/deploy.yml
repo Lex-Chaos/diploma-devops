@@ -31,8 +31,7 @@ jobs:
         file: ./nginx-app.dockerfile
         push: true
         tags: |
-          ${{ vars.REGISTRY }}:${{ env.TAG }}  # Образ с тегом v1.0.0
-          ${{ vars.REGISTRY }}:latest          # Образ с тегом latest
+          ${{ vars.REGISTRY }}:${{ env.TAG }}  # Образ с тегом v*
 
     - name: Set up Kubernetes
       uses: azure/setup-kubectl@v3
