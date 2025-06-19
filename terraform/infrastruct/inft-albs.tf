@@ -1,3 +1,4 @@
+# alb для grafana
 resource "yandex_alb_load_balancer" "grafana_alb" {
   name        = "grafana-alb"
   network_id  = yandex_vpc_network.diploma-network.id
@@ -86,7 +87,7 @@ output "grafana_alb_ip" {
   value = "grafana-address - http:\\${yandex_alb_load_balancer.grafana_alb.listener[0].endpoint[0].address[0].external_ipv4_address[0].address}"
 }
 
-
+# alb для приложения
 resource "yandex_alb_load_balancer" "app_alb" {
   name        = "app-alb"
   network_id  = yandex_vpc_network.diploma-network.id

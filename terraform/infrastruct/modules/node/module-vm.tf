@@ -41,7 +41,7 @@ resource "yandex_compute_instance" "vm" {
 
     metadata = {
     user-data = templatefile(var.user-data, {
-      ssh_key = file(var.ssh-key)
+      ssh_key = var.ssh-key
     })
     serial-port-enable = 1
   }

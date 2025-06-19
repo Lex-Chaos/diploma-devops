@@ -5,16 +5,20 @@ on:
     branches:
     - main
     paths:
-    - 'terraform/infrastruct/*.tf'
-    - 'terraform/infrastruct/*.tfvars'
-    - 'terraform/infrastruct/templates/**'
-    - 'terraform/infrastruct/modules/**'
+    - 'terraform/infrastruct/**'
+    # - 'terraform/infrastruct/*.tfvars'
+    # - 'terraform/infrastruct/templates/**'
+    # - 'terraform/infrastruct/modules/**'
 
 env:
   TF_VERSION: "1.11.4"
-  YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
-  YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
-  YC_TOKEN: ${{ secrets.YC_TOKEN }}
+  YC_CLOUD_ID: ${{ secrets.CLOUD_ID }}
+  YC_FOLDER_ID: ${{ secrets.FOLDER_ID }}
+  YC_TOKEN: ${{ secrets.TOKEN }}
+  PUBLIC_KEY: ${{ secrets.SSH_PUBLIC_KEY }}
+  BUCKET_ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
+  BUCKET_SECRET_KEY: ${{ secrets.SECRET_KEY }}
+  BUCKET_NAME: ${{ secrets.BUCKET }}
 
 jobs:
   terraform:
@@ -26,10 +30,6 @@ jobs:
         working-directory: terraform/infrastruct
 
     steps:
-    - name: Create SSH key file
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.SSH_PUBLIC_KEY }}" > ~/.ssh/id_ecdsa.pub
 
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -46,7 +46,22 @@ jobs:
       run: terraform validate
 
     - name: Terraform Plan
-      run: terraform plan -input=false -var="cloud_id=${{ env.YC_CLOUD_ID }}" -var="folder_id=${{ env.YC_FOLDER_ID }}" -var="token=${{ env.YC_TOKEN }}"
+      run: >
+        terraform plan -input=false 
+        -var="cloud_id=${{ env.YC_CLOUD_ID }}"
+        -var="folder_id=${{ env.YC_FOLDER_ID }}"
+        -var="token=${{ env.YC_TOKEN }}"
+        -var="ssh_public_key=${{ env.PUBLIC_KEY }}"
+        -var="bucket=${{ env.BUCKET_NAME }}"
+        -var="access_key=${{ env.BUCKET_ACCESS_KEY }}"
+        -var="secret_key=${{ env.BUCKET_SECRET_KEY }}"
 
     - name: Terraform Apply
       run: terraform apply -auto-approve -input=false
+
+    - name: Upload Ansible Inventory as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ansible-inventory
+        path: /tmp/diploma-inventory/inventory  # Путь из Terraform (для GitHub Actions)
+        if-no-files-found: error  # Завершить с ошибкой, если файл не найден

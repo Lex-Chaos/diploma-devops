@@ -30,7 +30,7 @@ resource "yandex_vpc_security_group" "diploma-kubernetes-sg" {
     v4_cidr_blocks = ["10.1.0.0/16", "10.2.0.0/16", "10.3.0.0/16"]
   }
 
-#Добавил для Grafana
+# Для Grafana
   ingress {
     description    = "Grafana"
     protocol       = "TCP"
@@ -52,7 +52,7 @@ resource "yandex_vpc_security_group" "diploma-kubernetes-sg" {
     v4_cidr_blocks = ["0.0.0.0/0"]
   }
 
-#Добавил для приложения
+#Для приложения
   ingress {
     description    = "App NodePort"
     protocol       = "TCP"

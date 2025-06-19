@@ -40,7 +40,7 @@ module "masters" {
   disk-size     = 10
   sec-group-id  = [yandex_vpc_security_group.diploma-kubernetes-sg.id]
   user-data     = "./templates/cloud-init.yml"
-  ssh-key       = "/home/runner/.ssh/id_ecdsa.pub"      #"~/.ssh/id_ecdsa.pub"
+  ssh-key       = var.ssh_public_key
 }
 
 # # Модуль для создания воркер-нод
@@ -58,12 +58,12 @@ module "workers" {
   disk-size     = 10
   sec-group-id  = [yandex_vpc_security_group.diploma-kubernetes-sg.id]
   user-data     = "./templates/cloud-init.yml"
-  ssh-key       = "/home/runner/.ssh/id_ecdsa.pub" #"~/.ssh/id_ecdsa.pub"
+  ssh-key       = var.ssh_public_key
 }
 
 # Генерация динамического inventory
 resource "local_file" "ansible_inventory" {
-  filename = "../../ansible/hosts.ini"
+  filename = var.github-actions == "true" ? "/tmp/diploma-inventory/inventory" : "../../ansible/inventory"
   content  = templatefile("templates/inventory.tftpl", {
     masters = [for m in module.masters : {
       name = m.name,

@@ -1,6 +1,7 @@
 **/.terraform/
 **/.terraform.lock.hcl
 **/terraform.tfstate*
-**/hosts.ini
-terraform/infrastruct/backend.tf
+**/inventory
 monitor/helm_result.txt
+**/yandex-auth.auto.tfvars
+**/bucket-auth.auto.tfvars
