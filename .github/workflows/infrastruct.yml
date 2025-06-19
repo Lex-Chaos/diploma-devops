@@ -61,7 +61,15 @@ jobs:
         -var="secret_key=${{ env.BUCKET_SECRET_KEY }}"
 
     - name: Terraform Apply
-      run: terraform apply -auto-approve -input=false
+      run: >
+        terraform apply -auto-approve -input=false
+        -var="cloud_id=${{ env.YC_CLOUD_ID }}"
+        -var="folder_id=${{ env.YC_FOLDER_ID }}"
+        -var="token=${{ env.YC_TOKEN }}"
+        -var="ssh_public_key=${{ env.PUBLIC_KEY }}"
+        -var="bucket=${{ env.BUCKET_NAME }}"
+        -var="access_key=${{ env.BUCKET_ACCESS_KEY }}"
+        -var="secret_key=${{ env.BUCKET_SECRET_KEY }}"
 
     - name: Upload Ansible Inventory as Artifact
       uses: actions/upload-artifact@v4
