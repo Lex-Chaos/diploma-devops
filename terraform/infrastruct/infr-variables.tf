@@ -31,7 +31,7 @@ variable "ssh_public_key" {
   description = "ssh-public-key"
   type = string
 }
-# Переменные для бэкэнда
+# Переменные для бэкэнда которые не применяются во время инициализации
 variable "bucket" {
   description = "bucket name"
   type = string
