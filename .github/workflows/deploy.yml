@@ -3,7 +3,11 @@ name: Deploy to Kubernetes
 on:
   push:
     tags:
-    - 'v*' # Срабатывает при создании тега вида v1.0.0
+      - 'v*' # Срабатывает при создании тега вида v1.0.0
+    branches: [ main ]
+    paths:
+      - 'docker/**'
+      - 'app/**' # Добавлен путь к манифестам
 
 jobs:
   deploy:
@@ -22,16 +26,25 @@ jobs:
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
     - name: Extract Docker tag
-      run: echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+      id: tag
+      run: |
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+          echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+        else
+          echo "TAG=latest" >> $GITHUB_ENV
+        fi
 
-    - name: Build and push tagged image
+    - name: Build and push image
       uses: docker/build-push-action@v5
       with:
-        context: .
-        file: ./nginx-app.dockerfile
+        context: ./docker # Указываем контекст сборки
+        file: ./docker/nginx-app.dockerfile # Полный путь к dockerfile
         push: true
         tags: |
-          ${{ vars.REGISTRY }}:${{ env.TAG }}  # Образ с тегом v*
+          ${{ secrets.DOCKERHUB_USERNAME }}/diploma-nginx-app:${{ env.TAG }}
+          ${{ secrets.DOCKERHUB_USERNAME }}/diploma-nginx-app:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
 
     - name: Set up Kubernetes
       uses: azure/setup-kubectl@v3
@@ -41,12 +54,13 @@ jobs:
     - name: Configure kubeconfig
       run: |
         mkdir -p ~/.kube
-        echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
+        echo "${{ secrets.KUBE_CONFIG }}" > ~/.kube/config
         kubectl cluster-info
 
     - name: Deploy to Kubernetes
       run: |
-        # Подставляем тег в манифест и применяем
-        sed -i "s|image: aaborovik/diploma-app:.*|image: ${{ vars.REGISTRY }}:${{ env.TAG }}|g" app-deployment.yml
-        kubectl apply -f app-deployment.yml
+        # Обновляем образ в манифесте
+        sed -i "s|image: aaborovik/diploma-nginx-app:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/diploma-nginx-app:${{ env.TAG }}|g" app/app-deployment.yml
+        kubectl apply -f app/app-deployment.yml
         kubectl rollout status deployment/diploma-app -n app
+        kubectl get pods -n app
