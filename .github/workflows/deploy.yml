@@ -37,8 +37,8 @@ jobs:
     - name: Build and push image
       uses: docker/build-push-action@v5
       with:
-        context: ./docker # Указываем контекст сборки
-        file: ./docker/nginx-app.dockerfile # Полный путь к dockerfile
+        context: ./docker
+        file: ./docker/nginx-app.dockerfile
         push: true
         tags: |
           ${{ secrets.DOCKERHUB_USERNAME }}/diploma-nginx-app:${{ env.TAG }}
@@ -46,21 +46,28 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-    - name: Set up Kubernetes
-      uses: azure/setup-kubectl@v3
-      with:
-        version: 'v1.30.0'
-
-    - name: Configure kubeconfig
+    - name: Verify Docker push
       run: |
-        mkdir -p ~/.kube
-        echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
-        kubectl cluster-info
+        echo "Trying to pull pushed image..."
+        docker pull ${{ secrets.DOCKERHUB_USERNAME }}/diploma-nginx-app:${{ env.TAG }}
 
     - name: Deploy to Kubernetes
       run: |
         # Обновляем образ в манифесте
-        sed -i "s|image: aaborovik/diploma-nginx-app:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/diploma-nginx-app:${{ env.TAG }}|g" app/app-deployment.yml
+        sed -i "s|image: .*/diploma-nginx-app:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/diploma-nginx-app:${{ env.TAG }}|g" app/app-deployment.yml
+
+        # Применяем изменения
         kubectl apply -f app/app-deployment.yml
-        kubectl rollout status deployment/diploma-app -n app
-        kubectl get pods -n app
+
+        # Принудительно триггерим обновление
+        kubectl patch deployment diploma-app -n app -p \
+          "{\"spec\":{\"template\":{\"metadata\":{\"labels\":{\"date\":\"$(date +%s)\"}}}}}"
+
+        # Ждем обновления
+        kubectl rollout status deployment/diploma-app -n app --timeout=180s
+
+        # Проверяем поды
+        kubectl get pods -n app -o wide
+
+        # Проверяем сервис
+        kubectl get svc -n app
