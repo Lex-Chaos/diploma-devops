@@ -9,37 +9,31 @@
     values_file: "/tmp/kube-prom-stack-values.yaml"
 
   tasks:
-  - name: Add Helm repo
-    ansible.builtin.command: helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-    args:
-      creates: "{{ ansible_user_dir }}/.config/helm/repositories.yaml"
+    - name: Add Helm repo
+      ansible.builtin.command: helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+      args:
+        creates: "{{ ansible_user_dir }}/.config/helm/repositories.yaml"
+  
+    - name: Update Helm repos
+      ansible.builtin.command: helm repo update
+  
+    - name: Copy values file to target node
+      ansible.builtin.copy:
+        src: "kube-prom-stack-values.yaml"
+        dest: "{{ values_file }}"
+        mode: '0644'
+  
+    - name: Create monitoring namespace
+      ansible.builtin.shell: >
+        kubectl create namespace {{ helm_namespace }} --dry-run=client -o yaml | kubectl apply -f -
+      args:
+        executable: /bin/bash
+  
+    - name: Install kube-prometheus-stack
+      ansible.builtin.command: >
+        helm upgrade --install {{ helm_release_name }} prometheus-community/kube-prometheus-stack --namespace {{ helm_namespace }} --values {{ values_file }} --wait --debug
+      environment:
+        KUBECONFIG: "{{ ansible_user_dir }}/.kube/config"
+      register: helm_result
+      ignore_errors: true
 
-  - name: Update Helm repos
-    ansible.builtin.command: helm repo update
-
-  - name: Copy values file to target node
-    ansible.builtin.copy:
-      src: "kube-prom-stack-values.yaml"
-      dest: "{{ values_file }}"
-      mode: '0644'
-
-  - name: Create monitoring namespace
-    ansible.builtin.shell: >
-      kubectl create namespace {{ helm_namespace }} --dry-run=client -o yaml | kubectl apply -f -
-    args:
-      executable: /bin/bash
-
-  - name: Install kube-prometheus-stack
-    ansible.builtin.command: >
-      helm upgrade --install {{ helm_release_name }} prometheus-community/kube-prometheus-stack --namespace {{ helm_namespace }} --values {{ values_file }} --wait --debug
-    environment:
-      KUBECONFIG: "{{ ansible_user_dir }}/.kube/config"
-    register: helm_result
-    ignore_errors: true
-
-  # - name: Save helm_result to file
-  #   ansible.builtin.copy:
-  #     content: "{{ helm_result }}"
-  #     dest: "~/Documents/diploma-devops/monitor/helm_result.txt"
-  #     mode: '0777'
-  #   delegate_to: localhost
