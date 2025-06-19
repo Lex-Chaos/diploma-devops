@@ -41,7 +41,7 @@ jobs:
 
     - name: Terraform Init
       run: >
-        terraform init init -reconfigure
+        terraform init -reconfigure
         -backend-config="bucket=${{ env.BUCKET_NAME }}"
         -backend-config="access_key=${{ env.BUCKET_ACCESS_KEY }}"
         -backend-config="secret_key=${{ env.BUCKET_SECRET_KEY }}"
@@ -56,9 +56,9 @@ jobs:
         -var="folder_id=${{ env.YC_FOLDER_ID }}"
         -var="token=${{ env.YC_TOKEN }}"
         -var="ssh_public_key=${{ env.PUBLIC_KEY }}"
-        # -var="bucket=${{ env.BUCKET_NAME }}"
-        # -var="access_key=${{ env.BUCKET_ACCESS_KEY }}"
-        # -var="secret_key=${{ env.BUCKET_SECRET_KEY }}"
+        -var="bucket=${{ env.BUCKET_NAME }}"
+        -var="access_key=${{ env.BUCKET_ACCESS_KEY }}"
+        -var="secret_key=${{ env.BUCKET_SECRET_KEY }}"
 
     - name: Terraform Apply
       run: terraform apply -auto-approve -input=false
