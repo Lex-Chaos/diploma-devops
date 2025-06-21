@@ -69,4 +69,4 @@ jobs:
       env:
         DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       run: |
-        sed "s|\${DOCKERHUB_USERNAME}|$DOCKERHUB_USERNAME|g" app-deployment.yml | kubectl apply -f -
+        sed "s|\${DOCKERHUB_USERNAME}|$DOCKERHUB_USERNAME|g" app/app-deployment.yml | kubectl apply -f -
