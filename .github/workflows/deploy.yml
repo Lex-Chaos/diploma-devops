@@ -74,5 +74,5 @@ jobs:
         # Принудительное обновление подов
     - name: Force pods update
       run: |
-        kubectl rollout restart deployment diploma-app
-        kubectl rollout status deployment diploma-app --timeout=90s
+        kubectl rollout restart deployment diploma-app -n app
+        kubectl rollout status deployment diploma-app -n app --timeout=90s
