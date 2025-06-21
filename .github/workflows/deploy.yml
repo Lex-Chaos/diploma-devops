@@ -12,11 +12,7 @@ on:
 jobs:
   deploy:
     if: |
-      startsWith(github.ref, 'refs/tags/v') &&
-      (
-        contains(github.event.head_commit.modified, 'docker/') ||
-        contains(github.event.head_commit.modified, 'app/')
-      )
+      startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     
     steps:
