@@ -10,6 +10,7 @@ on:
 
 jobs:
   build-and-push:
+    if: contains(github.event.commits[0].modified, 'docker/') || contains(github.event.commits[0].added, 'docker/')
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
