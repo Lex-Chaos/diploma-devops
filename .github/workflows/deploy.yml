@@ -70,3 +70,9 @@ jobs:
         DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       run: |
         sed "s|\${DOCKERHUB_USERNAME}|$DOCKERHUB_USERNAME|g" app/app-deployment.yml | kubectl apply -f -
+
+        # Принудительное обновление подов
+    - name: Force pods update
+      run: |
+        kubectl rollout restart deployment diploma-app
+        kubectl rollout status deployment diploma-app --timeout=90s
