@@ -37,9 +37,9 @@ python3 generate-auth.py
 
 Произойдёт создание переменных для terraform в файлах `yandex-auth.auto.tfvars`:
 
-![generate-auth.py](https://github.com/Lex-Chaos/diploma-devops/blob/main/img/01-auth-generate.png):
+![generate-auth.py](https://github.com/Lex-Chaos/diploma-devops/blob/main/img/01-auth-generate.png)
 
-После этого надо перейти в папку `terraform/sa-and-bucket/` и выполнить [манифесты создания сервисного аккаунта и бакета](https://github.com/Lex-Chaos/diploma-devops/blob/main/terraform/sa-and-buket):
+После этого надо перейти в папку `terraform/sa-and-bucket/` и применить [манифесты создания сервисного аккаунта и бакета](https://github.com/Lex-Chaos/diploma-devops/blob/main/terraform/sa-and-buket):
 
 ```bash
 terraform init
@@ -48,27 +48,27 @@ terraform apply
 
 Произойдёт создание бакета и сервисного аккаунта:
 
-![backet](https://github.com/Lex-Chaos/diploma-devops/blob/main/img/02-backet-tfinit.png):
+![backet](https://github.com/Lex-Chaos/diploma-devops/blob/main/img/02-backet-tfinit.png)
 
-![generate-auth.py](https://github.com/Lex-Chaos/diploma-devops/blob/main/img/03-backet-tfapply.png):
+![generate-auth.py](https://github.com/Lex-Chaos/diploma-devops/blob/main/img/03-backet-tfapply.png)
 
-Далее необходимо перейти в папку `terraform/infrastruct` и выполнить [манифесты создания инфраструктуры](https://github.com/Lex-Chaos/diploma-devops/blob/main/terraform/infrastruct):
+Далее необходимо перейти в папку `terraform/infrastruct` и применить [манифесты создания инфраструктуры](https://github.com/Lex-Chaos/diploma-devops/blob/main/terraform/infrastruct):
 
 ```bash
 terrform apply
 ```
 
-Будет сформирована инфраструктура.
+Будет сформирована инфраструктура:
 
-![generate-auth.py](https://github.com/Lex-Chaos/diploma-devops/blob/main/img/04-infr-tfapply.png):
+![generate-auth.py](https://github.com/Lex-Chaos/diploma-devops/blob/main/img/04-infr-tfapply.png)
 
-![generate-auth.py](https://github.com/Lex-Chaos/diploma-devops/blob/main/img/05-yandex-infr.png):
+![generate-auth.py](https://github.com/Lex-Chaos/diploma-devops/blob/main/img/05-yandex-infr.png)
 
 В процессе создания инфраструктуры формируется файл inventory для работы с ansible.
 
 ### Создание кластера
 
-Необходимо подождать некоторое время (в инстансах устанавливаются необходимые пакеты), перейти в папку `ansible/` и выполнить [манифест создания кластера](https://github.com/Lex-Chaos/diploma-devops/blob/main/ansible):
+Необходимо подождать некоторое время (в инстансах устанавливаются необходимые пакеты), перейти в папку `ansible/` и применить [манифест создания кластера](https://github.com/Lex-Chaos/diploma-devops/blob/main/ansible):
 
 ```bash
 ansible-playbook -i inventory k8s-cluster.yml
@@ -122,11 +122,11 @@ docker push $DOCKERHUB_USERNAME/diploma-nginx-app:latest
 
 Образ появится в репозитории:
 
-![dockerhub](https://github.com/Lex-Chaos/diploma-devops/blob/main/img/11-dockerhub.png):
+![dockerhub](https://github.com/Lex-Chaos/diploma-devops/blob/main/img/11-dockerhub.png)
 
 ### Установка тестового приложения
 
-Необходимо перейти в папку [app](https://github.com/Lex-Chaos/diploma-devops/blob/main/app): и выполнить:
+Необходимо перейти в папку [app/](https://github.com/Lex-Chaos/diploma-devops/blob/main/app) и выполнить:
 
 ```bash
 sed "s|\${DOCKERHUB_USERNAME}|$DOCKERHUB_USERNAME|g" app-deployment.yml | kubectl apply -f -
