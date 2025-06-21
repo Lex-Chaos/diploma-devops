@@ -12,12 +12,13 @@ on:
 
 jobs:
   deploy:
-    # Двойная проверка что это тег И пуш в main
-    # if: |
-    #   startsWith(github.ref, 'refs/tags/v') &&
-    #   github.ref_name == 'main' &&
-    #   contains(github.event.head_commit.modified, 'docker/') ||
-    #   contains(github.event.head_commit.modified, 'app/')
+    if: |
+      startsWith(github.ref, 'refs/tags/v') &&
+      github.ref_name == 'main' &&
+      (
+        contains(github.event.head_commit.modified, 'docker/') ||
+        contains(github.event.head_commit.modified, 'app/')
+      )
     runs-on: ubuntu-latest
     
     steps:
@@ -39,11 +40,7 @@ jobs:
     - name: Extract Docker tag
       id: extract-tag
       run: |
-        if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-          TAG="${GITHUB_REF#refs/tags/}"
-        # else
-        #   TAG="latest"
-        fi
+        TAG="${GITHUB_REF#refs/tags/}"
         echo "TAG=${TAG}" >> $GITHUB_ENV
         echo "Using TAG: ${TAG}"
 
