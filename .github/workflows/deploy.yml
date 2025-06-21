@@ -51,22 +51,22 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-    # # Настройка kubectl
-    # - name: Set up Kubernetes
-    #   uses: azure/setup-kubectl@v3
-    #   with:
-    #     version: 'v1.30.0'
+    # Настройка kubectl
+    - name: Set up Kubernetes
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.30.0'
 
-    # # Конфигурация доступа к кластеру
-    # - name: Configure kubeconfig
-    #   run: |
-    #     mkdir -p ~/.kube
-    #     echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
-    #     kubectl cluster-info
+    # Конфигурация доступа к кластеру
+    - name: Configure kubeconfig
+      run: |
+        mkdir -p ~/.kube
+        echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
+        kubectl cluster-info
 
-    # # Деплой в Kubernetes
-    # - name: Deploy to Kubernetes
-    #   env:
-    #     DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-    #   run: |
-    #     envsubst < app/app-deployment.yml | kubectl apply -f -
+    # Деплой в Kubernetes
+    - name: Deploy to Kubernetes
+      env:
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      run: |
+        envsubst < app/app-deployment.yml | kubectl apply -f -
