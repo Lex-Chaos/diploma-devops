@@ -77,3 +77,5 @@ resource "local_file" "ansible_inventory" {
     load_balancer_ip = one(one(yandex_lb_network_load_balancer.k8s-lb.listener[*]).external_address_spec[*]).address
   })
 }
+
+#

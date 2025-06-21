@@ -21,7 +21,7 @@ function check_software_installation() {
     
     # Проверка jq
     if ! command -v jq &> /dev/null; then
-        echo "ОШИБКА: jq не установлен. Установите: 'sudo apt install jq' или 'brew install jq'"
+        echo "ОШИБКА: jq не установлен."
         ((errors++))
     fi
     

@@ -26,7 +26,8 @@ resource "yandex_iam_service_account_static_access_key" "diploma-sa-key" {
 
 # Создание бакета
 resource "yandex_storage_bucket" "diploma-tfstate-bucket" {
-  bucket = "tfstate-backet-borovikaa"
+  bucket = "diploma-${formatdate("YYYYMMDD-hhmmss", timestamp())}"
+  force_destroy = true
   
   acl = "private"
   access_key = yandex_iam_service_account_static_access_key.diploma-sa-key.access_key
