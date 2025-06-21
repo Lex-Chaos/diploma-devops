@@ -5,6 +5,8 @@ on:
     branches: [ main ]
     paths:
     - 'docker/**'
+    tags-ignore:
+      - 'v*'
 
 jobs:
   build-and-push:
@@ -24,6 +26,12 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+    - name: Setup current date
+      id: date
+      run: |
+        current_date=$(date -u +"%Y-%m-%d_%H-%M-%S")
+        echo "DATE=${current_date}" >> $GITHUB_OUTPUT
+
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
@@ -31,4 +39,4 @@ jobs:
         file: ./docker/nginx-app.dockerfile
         push: true
         tags: |
-          ${{ secrets.DOCKERHUB_USERNAME }}/diploma-nginx-app:files-changed
+          ${{ secrets.DOCKERHUB_USERNAME }}/diploma-nginx-app:files-changed-${{ steps.date.outputs.DATE }}

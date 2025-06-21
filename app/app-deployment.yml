@@ -23,7 +23,7 @@ spec:
         node-role.kubernetes.io/worker: ""
       containers:
       - name: nginx
-        image: aaborovik/diploma-nginx-app:latest
+        image: ${DOCKERHUB_USERNAME}/diploma-nginx-app:latest
         ports:
         - containerPort: 80
         resources:

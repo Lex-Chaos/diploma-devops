@@ -2,16 +2,24 @@ name: Deploy to Kubernetes
 
 on:
   push:
+    branches:
+      - main
     tags:
-      - 'v*' # Срабатывает при создании тега вида v1.0.0
-    branches: [ main ]
+      - 'v*'
     paths:
       - 'docker/**'
       - 'app/**'
 
 jobs:
   deploy:
+    # Двойная проверка что это тег И пуш в main
+    # if: |
+    #   startsWith(github.ref, 'refs/tags/v') &&
+    #   github.ref_name == 'main' &&
+    #   contains(github.event.head_commit.modified, 'docker/') ||
+    #   contains(github.event.head_commit.modified, 'app/')
     runs-on: ubuntu-latest
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -31,23 +39,10 @@ jobs:
     - name: Extract Docker tag
       id: extract-tag
       run: |
-        if [[ $GITHUB_REF == refs/tags/* ]]; then
-          echo "TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-          echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-        else
-          echo "TAG=latest" >> $GITHUB_ENV
-          echo "tag=latest" >> $GITHUB_OUTPUT
-        fi
-        echo "Using TAG: $TAG"
-
-    # Проверка переменной TAG
-    - name: Verify TAG variable
-      run: |
-        if [ -z "$TAG" ]; then
-          echo "ERROR: TAG variable is empty!"
-          exit 1
-        fi
-        echo "Verified TAG: $TAG"
+        TAG="${GITHUB_REF#refs/tags/}"
+        echo "TAG=${TAG}" >> $GITHUB_ENV
+        # echo "tag=${TAG}" >> $GITHUB_OUTPUT
+        echo "Using TAG: ${TAG}"
 
     # Сборка и отправка образа
     - name: Build and push image
@@ -62,41 +57,22 @@ jobs:
         cache-from: type=gha
         cache-to: type=gha,mode=max
 
-    # Проверка отправки образа
-    - name: Verify Docker push
-      run: |
-        docker pull ${{ secrets.DOCKERHUB_USERNAME }}/diploma-nginx-app:${{ env.TAG }} || exit 1
-        echo "Image successfully pushed and verified"
+    # # Настройка kubectl
+    # - name: Set up Kubernetes
+    #   uses: azure/setup-kubectl@v3
+    #   with:
+    #     version: 'v1.30.0'
 
-    # Настройка kubectl
-    - name: Set up Kubernetes
-      uses: azure/setup-kubectl@v3
-      with:
-        version: 'v1.30.0'
+    # # Конфигурация доступа к кластеру
+    # - name: Configure kubeconfig
+    #   run: |
+    #     mkdir -p ~/.kube
+    #     echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
+    #     kubectl cluster-info
 
-    # Конфигурация доступа к кластеру
-    - name: Configure kubeconfig
-      run: |
-        mkdir -p ~/.kube
-        echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
-        kubectl cluster-info
-
-    # Деплой в Kubernetes
-    - name: Deploy to Kubernetes
-      run: |
-        # Обновляем образ в манифесте
-        sed -i "s|image: .*/diploma-nginx-app:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/diploma-nginx-app:${{ env.TAG }}|g" app/app-deployment.yml
-        
-        # Применяем изменения
-        kubectl apply -f app/app-deployment.yml
-        
-        # Принудительный триггер обновления
-        kubectl patch deployment diploma-app -n app -p \
-          "{\"spec\":{\"template\":{\"metadata\":{\"labels\":{\"date\":\"$(date +%s)\"}}}}}"
-        
-        # Ожидание обновления
-        kubectl rollout status deployment/diploma-app -n app --timeout=180s
-        
-        # Проверка состояния
-        kubectl get pods -n app -o wide
-        kubectl get svc -n app
+    # # Деплой в Kubernetes
+    # - name: Deploy to Kubernetes
+    #   env:
+    #     DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+    #   run: |
+    #     envsubst < app/app-deployment.yml | kubectl apply -f -
