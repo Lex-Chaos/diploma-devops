@@ -39,9 +39,12 @@ jobs:
     - name: Extract Docker tag
       id: extract-tag
       run: |
-        TAG="${GITHUB_REF#refs/tags/}"
+        if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+          TAG="${GITHUB_REF#refs/tags/}"
+        # else
+        #   TAG="latest"
+        fi
         echo "TAG=${TAG}" >> $GITHUB_ENV
-        # echo "tag=${TAG}" >> $GITHUB_OUTPUT
         echo "Using TAG: ${TAG}"
 
     # Сборка и отправка образа
