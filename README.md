@@ -29,6 +29,8 @@
 
 ### Создание инфраструктуры
 
+Необходимо сделать клон репозитория на локальную машину.
+
 В папке проекта выполнить скрипт [generate-auth.py](https://github.com/Lex-Chaos/diploma-devops/blob/main/generate-auth.py):
 
 ```python
